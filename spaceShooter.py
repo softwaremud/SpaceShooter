@@ -26,6 +26,7 @@ pygame.display.flip()
 # set the image which to be displayed on screen 
 SPACE_SHIP_IMG = pygame.image.load('images/space_ship.png') 
 ASTEROID01_IMG = pygame.image.load('images/asteroid01.png')
+ASTEROIDEXPLODE01_IMG = pygame.image.load('images/asteroidExplode01.png')
 SPACE_BACKGROUND_IMG = pygame.image.load('images/space_background.png')
 
 
@@ -61,16 +62,21 @@ class Laser:
         self.loc = Coordinate(x, y)
         self.old_loc = Coordinate(x,y)
     
-    def is_hit(asteroid):
+    def is_hit(self, asteroid):
         #WRITE collision code here...
-        print("write me... is_hit")
+        if ((self.loc.x > asteroid.loc.x and 
+             self.loc.x < asteroid.loc.x+50) and 
+             (self.loc.y > asteroid.loc.y - 50 and
+              self.loc.y < asteroid.loc.y)):             
+            print("write me... is_hit")
+            asteroid.image = ASTEROIDEXPLODE01_IMG
+            return True
+        
         
     def move(self, ship):
         self.old_loc = Coordinate(self.loc.x, self.loc.y)
         self.loc = Coordinate(self.loc.x, self.loc.y - LASER_SPEED)        
-        #ToDo: incorporate laser aserteroid collision detection here...
-        
-        
+
         #Laser is off-screen
         if self.loc.y < -100:
             ship.lasers.remove(self)
@@ -101,10 +107,13 @@ class SpaceShip:
     last_x = None
     direction = None
     lasers = []
+    shooting = False
     def draw(self, screen):
         self.clear_old_images(screen)
         self.draw_lasers(screen)
         self.draw_ship(screen)
+        if self.shooting == True:
+            self.shoot()
         
     def draw_ship(self, screen):       
         screen.blit(SPACE_SHIP_IMG, (self.x, SHIP_Y_POSITION))
@@ -112,7 +121,10 @@ class SpaceShip:
     def draw_lasers(self, screen):
         for a_laser in self.lasers:
             a_laser.draw(screen)
-            
+            for asteroid in asteroid_list:
+                if a_laser.is_hit(asteroid):
+                    print("HIT!")
+                
     
     def clear_old_images(self, screen):
         if self.last_x != None:
@@ -173,10 +185,17 @@ class Asteroid:
     def move(self):
         self.last_loc = Coordinate(self.loc.x, self.loc.y)
         self.loc = self.direction.next(self.loc.x, self.loc.y)
+        if self.is_off_screen():
+          #remove from the game
+          asteroid_list.remove(self)
         
     def is_off_screen(self):
         #ToDo
-        print("todo")
+        return (self.loc.x > SCREEN_WIDTH+10 or
+                self.loc.x < -10 or
+                self.loc.y > SCREEN_HEIGHT or
+                self.loc.y < -10)
+        
     
     
 player = SpaceShip()
@@ -202,17 +221,23 @@ while True:
         elif event.type == KEYDOWN and event.key == K_RIGHT:
                 player.direction = "right"
         elif event.type == KEYDOWN and event.key == K_SPACE:
-                player.shoot()
+                player.shooting = True
+                print('bang')
+        elif event.type == KEYUP:
+            player.shooting = False
         elif event.type == KEYUP:
             if event.key == K_LEFT or event.key == K_RIGHT:
                 player.direction = None
             
-                
+           
+
 
     
     # Clear the screen for this render cycle
         
-            
+           
+    if len(asteroid_list) < 4:
+      asteroid_list.append(Asteroid(random.randrange(0,SCREEN_WIDTH), 5))
     
     player.move()
         
