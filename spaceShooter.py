@@ -9,6 +9,7 @@ from pygame.locals import *
 #
 # A scrolling space shooter game
 
+pygame.init()
 
 SCREEN_HEIGHT = 1000
 SCREEN_WIDTH = 1400
@@ -17,6 +18,9 @@ MOVE_SIZE = 7
 
 screen = pygame.display.set_mode([SCREEN_WIDTH, SCREEN_HEIGHT])
 clock = pygame.time.Clock()
+my_font = pygame.font.Font(None, 40)
+
+pygame.display.flip()
 
 # Initialization of the game
 screen.fill((5, 5, 5))
@@ -108,10 +112,12 @@ class SpaceShip:
     direction = None
     lasers = []
     shooting = False
+    points=0
     def draw(self, screen):
         self.clear_old_images(screen)
         self.draw_lasers(screen)
         self.draw_ship(screen)
+        self.draw_score(screen)
         if self.shooting == True:
             self.shoot()
         
@@ -123,7 +129,19 @@ class SpaceShip:
             a_laser.draw(screen)
             for asteroid in asteroid_list:
                 if a_laser.is_hit(asteroid):
+                    self.points = self.points + 1
                     print("HIT!")
+                    print('i have ' + str(self.points))
+                    
+                    
+    def draw_score(self, screen):
+        #do stuff
+        color = (0, 155, 0) #Green
+        text = "Score " + str(self.points)
+        
+        #def draw_text_color(self, screen, text, loc, color):
+        text_surface = my_font.render(text, False, color)
+        screen.blit(text_surface, (0, 0))
                 
     
     def clear_old_images(self, screen):
@@ -135,7 +153,8 @@ class SpaceShip:
     def shoot(self):
         #maybe draw muzzle blast?
         #maybe sound?
-        self.lasers.append(Laser(self.x, SHIP_Y_POSITION))
+        if len(self.lasers) < 50:
+            self.lasers.append(Laser(self.x, SHIP_Y_POSITION))
         
     def move(self):
         self.last_x = self.x
@@ -223,7 +242,7 @@ while True:
         elif event.type == KEYDOWN and event.key == K_SPACE:
                 player.shooting = True
                 print('bang')
-        elif event.type == KEYUP:
+        elif event.type == KEYUP and event.key == K_SPACE:
             player.shooting = False
         elif event.type == KEYUP:
             if event.key == K_LEFT or event.key == K_RIGHT:
@@ -236,7 +255,7 @@ while True:
     # Clear the screen for this render cycle
         
            
-    if len(asteroid_list) < 4:
+    if len(asteroid_list) < 50:
       asteroid_list.append(Asteroid(random.randrange(0,SCREEN_WIDTH), 5))
     
     player.move()
