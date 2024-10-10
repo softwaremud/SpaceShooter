@@ -32,6 +32,7 @@ SPACE_SHIP_IMG = pygame.image.load('images/space_ship.png')
 ASTEROID01_IMG = pygame.image.load('images/asteroid01.png')
 ASTEROIDEXPLODE01_IMG = pygame.image.load('images/asteroidExplode01.png')
 SPACE_BACKGROUND_IMG = pygame.image.load('images/space_background.png')
+START_SCREEN_IMG = pygame.image.load('images/start01.png')
 
 
 # Set the size for the image
@@ -215,14 +216,87 @@ class Asteroid:
                 self.loc.y > SCREEN_HEIGHT or
                 self.loc.y < -10)
         
+
+#Start Screen
+
+print("start screen....")
+screen.fill((5, 5, 5))
+
+
+
+
+class Button:
+    label:'none'
+    loc: None  #Coordinate of the top left corner of this button
     
+    
+    def __init__(self, the_label, the_loc):
+        self.label = the_label
+        self.loc = the_loc
+        
+    
+    def draw(self, screen):
+        button_color = (30,130,130) #purple
+        pygame.draw.rect(screen, button_color, (self.loc.x, self.loc.y, self.loc.x + 200, self.loc.y + 50))
+        
+        color = (0, 0,0) #Black
+        
+        #def draw_text_color(self, screen, text, loc, color):
+        text_surface = my_font.render(self.label, False, color)
+        screen.blit(text_surface, (self.loc.x + 10, self.loc.y+10))
+        
+    def is_clicked(self, mouseloc):
+            return mouseloc.x >= self.loc.x and mouseloc.x <= self.loc.x + 200 and mouseloc.y >= self.loc.y and mouseloc.y <= self.loc.y + 50
+            
+  
+        
+start_game_button = Button('Start Game!', Coordinate(0, 0))
+
+screen.blit(START_SCREEN_IMG, (0,0))
+start_game_button.draw(screen)
+print("start screen rendered?...")        
+pygame.display.update()
+
+awesome_button = Button('awesome mode!!!!!',Coordinate(1000,0))
+
+awesome_button.draw(screen)
+print("awesome mode screen rendered?...")        
+pygame.display.update()
+
+awesome_mode = False
+starting_game = True
+while starting_game:
+    
+    for event in pygame.event.get():
+
+        if awesome_mode:
+            awesome_text = my_font.render('AWESOME MODE!', False, (55,55,55))
+            screen.blit(awesome_text, (50, 50))   
+            pygame.display.update()
+            
+            
+        
+        # Close window event
+        if event.type == QUIT:
+            pygame.quit()
+            exit()
+            
+        if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+            mouse_loc = Coordinate(event.pos[0],event.pos[1])
+            if start_game_button.is_clicked(mouse_loc):
+                starting_game = False
+            if awesome_button.is_clicked(mouse_loc):
+                awesome_mode = True 
+                #continue to the regular game loop below
+        
+print('is it awesome mode? ' + str(awesome_mode))
     
 player = SpaceShip()
 asteroid_list = [ Asteroid(50,50),  Asteroid(SCREEN_WIDTH/2, 50),  Asteroid(SCREEN_WIDTH-50, 50)]
 
 background_pos = 0
-
-# Snf%ake Game animation loop
+#if False:
+    # Snf%ake Game animation loop
 while True:
     
     
