@@ -1,6 +1,7 @@
 import pygame
 import random
 import math
+from enum import Enum
 from pygame.locals import *
 
 
@@ -11,7 +12,7 @@ from pygame.locals import *
 
 pygame.init()
 
-SCREEN_HEIGHT = 1000
+SCREEN_HEIGHT = 800
 SCREEN_WIDTH = 1400
 
 MOVE_SIZE = 7
@@ -57,7 +58,7 @@ class Coordinate:
         self.x = x_pos
         self.y = y_pos
 
-LASER_SPEED = 25
+
 
 class Laser:
     loc = 0
@@ -66,27 +67,58 @@ class Laser:
     def __init__(self, x, y):
         self.loc = Coordinate(x, y)
         self.old_loc = Coordinate(x,y)
+        if LASER_MODE:
+            self.color = (0, 250, 180) #blue?
     
     def is_hit(self, asteroid):
-        #WRITE collision code here...
-        if ((self.loc.x > asteroid.loc.x and 
-             self.loc.x < asteroid.loc.x+50) and 
-             (self.loc.y > asteroid.loc.y - 50 and
-              self.loc.y < asteroid.loc.y)):             
-            print("write me... is_hit")
-            asteroid.image = ASTEROIDEXPLODE01_IMG
-            return True
+        if LASER_MODE: 
+            #WRITE collision code here...
+            if ((self.loc.x > asteroid.loc.x and 
+                 self.loc.x < asteroid.loc.x+100) and 
+                 (self.loc.y > asteroid.loc.y - 50 and
+                  self.loc.y < asteroid.loc.y)):
+                asteroid.is_hit = True
+                return True
+        else:            
+            #WRITE collision code here...
+            if ((self.loc.x > asteroid.loc.x and 
+                 self.loc.x < asteroid.loc.x+50) and 
+                 (self.loc.y > asteroid.loc.y - 50 and
+                  self.loc.y < asteroid.loc.y)):
+                asteroid.is_hit = True
+                return True
+        
+        
+        
         
         
     def move(self, ship):
         self.old_loc = Coordinate(self.loc.x, self.loc.y)
-        self.loc = Coordinate(self.loc.x, self.loc.y - LASER_SPEED)        
+        self.loc = Coordinate(self.loc.x, self.loc.y - mode.Laser_speed)        
 
         #Laser is off-screen
         if self.loc.y < -100:
             ship.lasers.remove(self)
             
     def draw(self, screen):
+        if LASER_MODE:
+            self.draw_mega_laser(screen)
+        else:
+            self.draw_small_lasers(screen)
+            
+    def draw_mega_laser(self, screen):
+        #clear-old
+        pygame.draw.rect(screen, (5,5,5), 
+                 pygame.Rect(self.old_loc.x, self.old_loc.y, 50,50))
+        #draw mega-laser
+        pygame.draw.rect(screen, self.color, 
+                 pygame.Rect(self.loc.x, self.loc.y, 50,50))
+        
+        
+    
+    
+    def draw_small_lasers(self, screen):
+        
         #clear-old left
         pygame.draw.rect(screen, (5,5,5), 
                  pygame.Rect(self.old_loc.x+10, self.old_loc.y, 2,20))
@@ -131,8 +163,6 @@ class SpaceShip:
             for asteroid in asteroid_list:
                 if a_laser.is_hit(asteroid):
                     self.points = self.points + 1
-                    print("HIT!")
-                    print('i have ' + str(self.points))
                     
                     
     def draw_score(self, screen):
@@ -154,7 +184,7 @@ class SpaceShip:
     def shoot(self):
         #maybe draw muzzle blast?
         #maybe sound?
-        if len(self.lasers) < 50:
+        if len(self.lasers) < mode.maximum_lasers:
             self.lasers.append(Laser(self.x, SHIP_Y_POSITION))
         
     def move(self):
@@ -188,15 +218,25 @@ class Asteroid:
     loc = Coordinate(0, 0)
     last_loc = None
     direction = None
+    health = 10
+    
     image = None
+    is_hit = False
+    self_destruct_timer = -1
     def __init__(self, x_pos, y_pos):
         self.loc = Coordinate(x_pos, y_pos)
         self.last_loc = Coordinate(x_pos, y_pos)
         self.direction = Vector(random.randrange(1,15), random.randrange(0, 360))
         self.image = ASTEROID01_IMG
-        
 
+        
     def draw(self, screen):
+        if self.is_hit and self.self_destruct_timer == -1:
+            self.image = ASTEROIDEXPLODE01_IMG
+            self.self_destruct_timer = 25
+        elif self.is_hit:
+            self.self_destruct_timer = self.self_destruct_timer - 1
+            
         a_rect = pygame.Rect(self.last_loc.x, self.last_loc.y, SIZE, SIZE)
         pygame.draw.rect(screen, (5, 5, 5), a_rect)
         screen.blit(self.image, (self.loc.x, self.loc.y))
@@ -205,9 +245,10 @@ class Asteroid:
     def move(self):
         self.last_loc = Coordinate(self.loc.x, self.loc.y)
         self.loc = self.direction.next(self.loc.x, self.loc.y)
-        if self.is_off_screen():
+        if self.is_off_screen() or self.self_destruct_timer == 0:
           #remove from the game
           asteroid_list.remove(self)
+            
         
     def is_off_screen(self):
         #ToDo
@@ -247,32 +288,89 @@ class Button:
         
     def is_clicked(self, mouseloc):
             return mouseloc.x >= self.loc.x and mouseloc.x <= self.loc.x + 200 and mouseloc.y >= self.loc.y and mouseloc.y <= self.loc.y + 50
-            
+
+class Game_Mode:
+    maximum_asteroids = -1
+    maximum_lasers = -1
+    laser_speed = -1
+    
+    def __init__(self, type):
+        if type == Game_Type.NORMAL_MODE:
+            self.Laser_speed = 25
+            self.maximum_asteroids = 20
+            self.maximum_lasers = 30
+        elif type == Game_Type.LASER_MODE:
+            self.Laser_speed = 25
+            self.maximum_asteroids = 50
+            self.maximum_lasers = 100
+        elif type == Game_Type.BURST_MODE:
+            self.Laser_speed = 15
+            self.maximum_asteroids = 20
+            self.maximum_lasers = 5
+        elif type == Game_Type.SWARM_MODE:
+            self.maximum_asteroids = 100
+            self.maximum_lasers = 50
+            self.Laser_speed = 25
+            ##AWESOME MODE ALSO
+        else:
+            self.maximum_asteroids = 10
+            self.maximum_lasers = 50
+
+        
+    
+    
+class Game_Type(Enum):
+    NORMAL_MODE = 0
+    AWESOME_MODE = 1
+    SWARM_MODE = 2    
+    LASER_MODE = 3    
+    BURST_MODE = 4    
+    
+    
+    
   
         
 start_game_button = Button('Start Game!', Coordinate(0, 0))
 
-screen.blit(START_SCREEN_IMG, (0,0))
+screen.blit(START_SCREEN_IMG, (0,-200))
 start_game_button.draw(screen)
 print("start screen rendered?...")        
 pygame.display.update()
 
-awesome_button = Button('awesome mode!!!!!',Coordinate(1000,0))
+swarm_button = Button('swarm mode!!!!!',Coordinate(1000,0))
 
-awesome_button.draw(screen)
-print("awesome mode screen rendered?...")        
-pygame.display.update()
+swarm_button.draw(screen)
+print("swarm mode screen rendered?...")        
 
-awesome_mode = False
+
+LASER_button = Button('LASER mode!!!!!',Coordinate(1000,100))
+
+
+LASER_button.draw(screen)
+print("swarm mode screen rendered?...")
+
+swarm_mode = False
 starting_game = True
+LASER_MODE = False
+mode = Game_Mode(Game_Type.NORMAL_MODE)
+pygame.display.update()
 while starting_game:
     
     for event in pygame.event.get():
 
-        if awesome_mode:
-            awesome_text = my_font.render('AWESOME MODE!', False, (55,55,55))
-            screen.blit(awesome_text, (50, 50))   
+        if swarm_mode:
+            swarm_text = my_font.render('SWARM_MODE!', False, (55,55,55))
+            screen.blit(swarm_text, (50, 50))   
             pygame.display.update()
+            mode = Game_Mode(Game_Type.SWARM_MODE)
+        
+        if LASER_MODE:
+            LASER_text = my_font.render('LASER_MODE!', False, (55,55,55))
+            screen.blit(LASER_text, (50, 50))   
+            pygame.display.update()
+            mode = Game_Mode(Game_Type.LASER_MODE)
+        
+            
             
             
         
@@ -285,12 +383,14 @@ while starting_game:
             mouse_loc = Coordinate(event.pos[0],event.pos[1])
             if start_game_button.is_clicked(mouse_loc):
                 starting_game = False
-            if awesome_button.is_clicked(mouse_loc):
-                awesome_mode = True 
+            if swarm_button.is_clicked(mouse_loc):
+                swarm_mode = True
+            if LASER_button.is_clicked(mouse_loc):
+                LASER_MODE = True 
                 #continue to the regular game loop below
         
-print('is it awesome mode? ' + str(awesome_mode))
-    
+print('is it swarm mode? ' + str(swarm_mode))
+print('is it LASER mode? ' + str(LASER_MODE))    
 player = SpaceShip()
 asteroid_list = [ Asteroid(50,50),  Asteroid(SCREEN_WIDTH/2, 50),  Asteroid(SCREEN_WIDTH-50, 50)]
 
@@ -329,7 +429,7 @@ while True:
     # Clear the screen for this render cycle
         
            
-    if len(asteroid_list) < 50:
+    if len(asteroid_list) < mode.maximum_asteroids:
       asteroid_list.append(Asteroid(random.randrange(0,SCREEN_WIDTH), 5))
     
     player.move()
