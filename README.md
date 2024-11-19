@@ -1,5 +1,11 @@
 
+2024.09.30
 
+Parker and I worked on this a bit last time and we:
+* added a score
+* made the astroids blow up
+* we like this version so we're keeping a branch/copy
+* we like that the asteroids still give points even after they blow up
 
 
 ## Calculations
